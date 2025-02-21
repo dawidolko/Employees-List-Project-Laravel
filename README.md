@@ -61,7 +61,7 @@ project
 
    ```bash
    git clone https://github.com/dawidolko/Employees-List-Project-Laravel
-   cd pracownicy
+   cd Employees-List-Project-Laravel
    ```
 
 2. **Backend (Laravel) setup**:
