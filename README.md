@@ -60,7 +60,7 @@ project
 1. **Clone the repository**:
 
    ```bash
-   git clone https://gitlab.ideo.pl/m.koszyk/pracownicy
+   git clone https://github.com/dawidolko/Employees-List-Project-Laravel
    cd pracownicy
    ```
 
