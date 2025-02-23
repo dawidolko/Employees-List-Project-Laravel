@@ -4,7 +4,7 @@
 <div class="container mt-5">
     <h1>Employee Directory</h1>
     
-    <form action="{{ route('employees.index') }}" method="GET" class="mb-4">
+    <form action="{{ route('employees.index') }}" method="GET" class="mb-4" id="filterForm">
         <div class="row">
             <div class="col">
                 <label>Status</label>
@@ -49,7 +49,7 @@
         </div>
     </form>
     
-    <table class="table table-bordered table-dark">
+    <table class="table table-bordered table-dark mt-4">
         <thead>
             <tr>
                 <th>First Name</th>
@@ -76,49 +76,95 @@
         <div class="col-12 d-flex justify-content-center">
             {{ $employees->onEachSide(1)->withQueryString()->links('pagination::bootstrap-4') }}
         </div>
-    </div>    
-     
+    </div>
 </div>
 
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
-    <div id="exportToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <strong class="me-auto" id="toastTitle"></strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body" id="toastBody"></div>
+<div id="customToast" style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1050; background-color: #343a40; color: #fff; border-radius: 4px; padding: 1rem; display: none; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div id="toastHeader" style="font-weight: bold; margin-bottom: 0.5rem;"></div>
+    <div id="toastMessage" style="margin-bottom: 0.5rem;"></div>
+    <div style="width: 100%; background-color: #6c757d; border-radius: 4px;">
+        <div id="toastProgress" style="width: 0%; background-color: #28a745; color: #fff; text-align: center; padding: 0.2rem 0; border-radius: 4px;">0%</div>
     </div>
+    <button id="toastClose" style="margin-top: 0.5rem; background-color: #dc3545; color: #fff; border: none; padding: 0.3rem 0.5rem; border-radius: 4px; cursor: pointer;">Close</button>
 </div>
 @endsection
 
 @section('scripts')
 <style>
-.pagination-container {
-    max-width: 300px;
-    width: 90%;
-}
 @media (max-width: 500px) {
-    .row{
+    .row {
         display: none;
     }
 }
 </style>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    var exportButtons = document.querySelectorAll('.export-btn');
+    function showToast(header, message) {
+        const toast = document.getElementById('customToast');
+        document.getElementById('toastHeader').textContent = header;
+        document.getElementById('toastMessage').textContent = message;
+        toast.style.display = 'block';
+    }
+    function hideToast() {
+        document.getElementById('customToast').style.display = 'none';
+    }
+    document.getElementById('toastClose').addEventListener('click', hideToast);
+    
+    const exportButtons = document.querySelectorAll('.export-btn');
     exportButtons.forEach(function(button) {
         button.addEventListener('click', function(e) {
-            var exportType = e.currentTarget.getAttribute('data-export-type');
-            var toastTitle = exportType + " Export";
-            var toastBody = exportType + " export initiated.";
-            document.getElementById('toastTitle').textContent = toastTitle;
-            document.getElementById('toastBody').textContent = toastBody;
-            var toastElement = document.getElementById('exportToast');
-            var toastInstance = bootstrap.Toast.getInstance(toastElement);
-            if (!toastInstance) {
-                toastInstance = new bootstrap.Toast(toastElement, { delay: 3000 });
+            e.preventDefault();
+            const exportType = this.getAttribute('data-export-type');
+            const exportUrl = this.getAttribute('href');
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData).toString();
+            
+            showToast(exportType + " Export", exportType + " export initiated.");
+            const progressBar = document.getElementById('toastProgress');
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            
+            function simulateProgress(callback) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    if (progress > 100) progress = 100;
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        callback();
+                    }
+                }, 100);
             }
-            toastInstance.show();
+            
+            if (exportType === 'PDF') {
+                // Dla PDF (limit 1000 rekordów)
+                fetch("{{ route('employees.export.pdf.check') }}?" + params)
+                    .then(response => {
+                        return response.json().then(data => {
+                            if (!response.ok) {
+                                throw data;
+                            }
+                            return data;
+                        });
+                    })
+                    .then(data => {
+                        simulateProgress(() => {
+                            window.location.href = exportUrl;
+                        });
+                    })
+                    .catch(err => {
+                        const errorMsg = err.message || "Błąd podczas sprawdzania możliwości eksportu PDF.";
+                        showToast("Error", errorMsg);
+                        progressBar.style.width = '0%';
+                        progressBar.textContent = '0%';
+                    });
+            } else { // CSV
+                simulateProgress(() => {
+                    window.location.href = exportUrl;
+                });
+            }
         });
     });
 });
