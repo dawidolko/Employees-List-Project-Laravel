@@ -1,3 +1,5 @@
+call php -r "copy('.env.example', '.env');"
+
 call composer install
 
 @REM call composer update

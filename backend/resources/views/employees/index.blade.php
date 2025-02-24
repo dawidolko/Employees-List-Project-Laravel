@@ -20,10 +20,10 @@
                     <option value="">All</option>
                     <option value="M" {{ request('gender') == 'M' ? 'selected' : '' }}>Male</option>
                     <option value="F" {{ request('gender') == 'F' ? 'selected' : '' }}>Female</option>
-                </select>
+                </select> 
             </div>
             <div class="col">
-                <label>Salary Min</label>
+                <label>Salary Min </label>
                 <input type="number" name="salary_min" class="form-control" value="{{ request('salary_min') }}" min="0">
             </div>
             <div class="col">
@@ -42,16 +42,29 @@
                 </select>
             </div>
         </div>
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{{ route('employees.export.pdf', request()->query()) }}" class="btn btn-success export-btn" data-export-type="PDF">Export PDF</a>
-            <a href="{{ route('employees.export.csv', request()->query()) }}" class="btn btn-info export-btn" data-export-type="CSV">Export CSV</a>
+
+        <div class="mt-3 d-flex align-items-center">
+            <div class="mr-3" style="margin-right: 10px;">
+                <button type="submit" class="btn btn-primary">Filter</button>
+            </div>
+            <div class="mr-3" style="margin-right: 10px;">
+                <a href="{{ route('employees.export.pdf', request()->query()) }}" class="btn btn-success export-btn" data-export-type="PDF">Export PDF</a>
+            </div>
+            <div class="mr-3" style="margin-right: 15px;">
+                <a href="{{ route('employees.export.csv', request()->query()) }}" class="btn btn-info export-btn" data-export-type="CSV">Export CSV</a>
+            </div>
+            <div class="ml-auto text-light">
+                Liczba pracowników: {{ $employees->total() }}
+            </div>
         </div>
     </form>
     
     <table class="table table-bordered table-dark mt-4">
         <thead>
             <tr>
+                <th style="width: 50px;">
+                    <input type="checkbox" id="select-all" checked>
+                </th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Department</th>
@@ -61,12 +74,26 @@
         </thead>
         <tbody>
             @foreach($employees as $employee)
-            <tr>
+            <tr onclick="if(event.target.type !== 'checkbox') window.location.href='{{ route('employees.show', $employee->emp_no) }}'" style="cursor: pointer;">
+                <td>
+                    <input type="checkbox" class="employee-checkbox" name="selected_ids[]" value="{{ $employee->emp_no }}" checked onclick="event.stopPropagation();">
+                </td>
                 <td>{{ $employee->first_name }}</td>
                 <td>{{ $employee->last_name }}</td>
                 <td>{{ optional($employee->currentDepartment)->dept_name }}</td>
                 <td>{{ optional($employee->currentTitle)->title }}</td>
-                <td>{{ optional($employee->currentSalary)->salary }}</td>
+                <td>
+                    @if(optional($employee->currentSalary)->salary)
+                        {{ $employee->currentSalary->salary }}
+                    @elseif($employee->salaries && $employee->salaries->isNotEmpty())
+                        @php
+                            $lastSalary = $employee->salaries->sortByDesc('to_date')->first();
+                        @endphp
+                        {{ $lastSalary->salary }} <small>({{ $lastSalary->to_date }})</small>
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
             @endforeach
         </tbody>
@@ -109,7 +136,35 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('customToast').style.display = 'none';
     }
     document.getElementById('toastClose').addEventListener('click', hideToast);
-    
+
+    function restoreCheckboxState(checkbox) {
+        let key = "employee_checkbox_" + checkbox.value;
+        let storedValue = localStorage.getItem(key);
+        if (storedValue !== null) {
+            checkbox.checked = (storedValue === "true");
+        } else {
+            checkbox.checked = true;
+        }
+    }
+
+    const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
+    employeeCheckboxes.forEach(function(checkbox) {
+        restoreCheckboxState(checkbox);
+        checkbox.addEventListener('change', function() {
+            let key = "employee_checkbox_" + checkbox.value;
+            localStorage.setItem(key, checkbox.checked);
+            let allOnPage = Array.from(employeeCheckboxes).every(cb => cb.checked);
+            document.getElementById('select-all').checked = allOnPage;
+        });
+    });
+
+    document.getElementById('select-all').addEventListener('change', function(event){
+        employeeCheckboxes.forEach(function(chk) {
+            chk.checked = event.target.checked;
+            localStorage.setItem("employee_checkbox_" + chk.value, event.target.checked);
+        });
+    });
+
     const exportButtons = document.querySelectorAll('.export-btn');
     exportButtons.forEach(function(button) {
         button.addEventListener('click', function(e) {
@@ -117,13 +172,46 @@ document.addEventListener("DOMContentLoaded", function() {
             const exportType = this.getAttribute('data-export-type');
             const exportUrl = this.getAttribute('href');
             const formData = new FormData(document.getElementById('filterForm'));
-            const params = new URLSearchParams(formData).toString();
-            
+            const params = new URLSearchParams(formData);
+
+            if(document.getElementById('select-all').checked) {
+                params.set('all_selected', '1');
+                let deselected = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key.startsWith("employee_checkbox_")) {
+                        let value = localStorage.getItem(key);
+                        if (value === "false") {
+                            let empId = key.replace("employee_checkbox_", "");
+                            deselected.push(empId);
+                        }
+                    }
+                }
+                deselected.forEach(id => {
+                    params.append('deselected_ids[]', id);
+                });
+            } else {
+                let selected = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    let key = localStorage.key(i);
+                    if (key.startsWith("employee_checkbox_")) {
+                        let value = localStorage.getItem(key);
+                        if (value === "true") {
+                            let empId = key.replace("employee_checkbox_", "");
+                            selected.push(empId);
+                        }
+                    }
+                }
+                selected.forEach(id => {
+                    params.append('selected_ids[]', id);
+                });
+            }
+
             showToast(exportType + " Export", exportType + " export initiated.");
             const progressBar = document.getElementById('toastProgress');
             progressBar.style.width = '0%';
             progressBar.textContent = '0%';
-            
+
             function simulateProgress(callback) {
                 let progress = 0;
                 const interval = setInterval(() => {
@@ -137,10 +225,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                 }, 100);
             }
-            
+
             if (exportType === 'PDF') {
-                // Dla PDF (limit 1000 rekordów)
-                fetch("{{ route('employees.export.pdf.check') }}?" + params)
+                fetch("{{ route('employees.export.pdf.check') }}?" + params.toString())
                     .then(response => {
                         return response.json().then(data => {
                             if (!response.ok) {
@@ -151,7 +238,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     })
                     .then(data => {
                         simulateProgress(() => {
-                            window.location.href = exportUrl;
+                            window.location.href = exportUrl + '?' + params.toString();
                         });
                     })
                     .catch(err => {
@@ -162,7 +249,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
             } else { // CSV
                 simulateProgress(() => {
-                    window.location.href = exportUrl;
+                    window.location.href = exportUrl + '?' + params.toString();
                 });
             }
         });
