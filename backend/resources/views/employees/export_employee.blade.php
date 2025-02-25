@@ -6,9 +6,9 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; }
         .header { text-align: center; margin-bottom: 20px; }
-        .details { width: 100%; border-collapse: collapse; }
-        .details td, .details th { border: 1px solid #ddd; padding: 8px; }
-        .details th { background-color: #f2f2f2; }
+        .details, .history { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .details td, .details th, .history td, .history th { border: 1px solid #ddd; padding: 8px; }
+        .details th, .history th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
@@ -44,11 +44,33 @@
         </tr>
         <tr>
             <th>Departament</th>
-            <td>{{ optional($employee->currentDepartment)->dept_name ?? 'Brak' }}</td>
+            <td>
+                @if(optional($employee->currentDepartment)->dept_name)
+                    {{ $employee->currentDepartment->dept_name }}
+                @elseif($employee->deptEmps->isNotEmpty())
+                    @php
+                        $lastDept = $employee->deptEmps->sortByDesc('to_date')->first();
+                    @endphp
+                    {{ optional($lastDept->department)->dept_name ?? 'Brak' }}
+                @else
+                    Brak
+                @endif
+            </td>
         </tr>
         <tr>
             <th>Tytuł zawodowy</th>
-            <td>{{ optional($employee->currentTitle)->title ?? 'Brak' }}</td>
+            <td>
+                @if(optional($employee->currentTitle)->title)
+                    {{ $employee->currentTitle->title }}
+                @elseif($employee->titles->isNotEmpty())
+                    @php
+                        $lastTitle = $employee->titles->sortByDesc('to_date')->first();
+                    @endphp
+                    {{ $lastTitle->title }}
+                @else
+                    Brak
+                @endif
+            </td>
         </tr>
         <tr>
             <th>Aktualna pensja</th>
@@ -69,6 +91,46 @@
             <th>Suma wszystkich wypłat</th>
             <td>{{ $totalSalaries }}</td>
         </tr>
+    </table>
+    
+    <h3>Historia pensji</h3>
+    <table class="history">
+        <thead>
+            <tr>
+                <th>Od</th>
+                <th>Do</th>
+                <th>Pensja</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($employee->salaries->sortBy('from_date') as $salary)
+            <tr>
+                <td>{{ $salary->from_date }}</td>
+                <td>{{ $salary->to_date }}</td>
+                <td>{{ $salary->salary }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    
+    <h3>Historia stanowiska</h3>
+    <table class="history">
+        <thead>
+            <tr>
+                <th>Od</th>
+                <th>Do</th>
+                <th>Stanowisko</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($employee->titles->sortBy('from_date') as $title)
+            <tr>
+                <td>{{ $title->from_date }}</td>
+                <td>{{ $title->to_date }}</td>
+                <td>{{ $title->title }}</td>
+            </tr>
+            @endforeach
+        </tbody>
     </table>
 </body>
 </html>

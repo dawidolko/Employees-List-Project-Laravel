@@ -50,8 +50,8 @@ class EmployeeController extends Controller
             $query->whereDoesntHave('deptEmps', function($q) {
                 $q->where('to_date', '9999-01-01');
             });
-            // Dla byłych pracowników ładujemy również historię pensji
-            $query->with('salaries');
+            // Dla byłych pracowników ładujemy historię pensji oraz stanowisk
+            $query->with(['salaries', 'titles']);
         }
 
         if ($salaryMin !== null) {
@@ -86,8 +86,14 @@ class EmployeeController extends Controller
 
     public function show(Request $request, $emp_no)
     {
-        $employee = Employee::with(['currentTitle', 'currentSalary', 'currentDepartment', 'deptEmps', 'salaries'])
-                        ->findOrFail($emp_no);
+        $employee = Employee::with([
+            'currentTitle', 
+            'currentSalary', 
+            'currentDepartment', 
+            'deptEmps', 
+            'salaries', 
+            'titles'
+        ])->findOrFail($emp_no);
 
         $totalSalaries = $employee->salaries->sum('salary');
 
@@ -96,8 +102,14 @@ class EmployeeController extends Controller
 
     public function exportEmployeePdf(Request $request, $emp_no)
     {
-        $employee = Employee::with(['currentTitle', 'currentSalary', 'currentDepartment', 'deptEmps', 'salaries'])
-                        ->findOrFail($emp_no);
+        $employee = Employee::with([
+            'currentTitle', 
+            'currentSalary', 
+            'currentDepartment', 
+            'deptEmps', 
+            'salaries',
+            'titles'
+        ])->findOrFail($emp_no);
 
         $totalSalaries = $employee->salaries->sum('salary');
 

@@ -20,10 +20,10 @@
                     <option value="">All</option>
                     <option value="M" {{ request('gender') == 'M' ? 'selected' : '' }}>Male</option>
                     <option value="F" {{ request('gender') == 'F' ? 'selected' : '' }}>Female</option>
-                </select> 
+                </select>
             </div>
             <div class="col">
-                <label>Salary Min </label>
+                <label>Salary Min</label>
                 <input type="number" name="salary_min" class="form-control" value="{{ request('salary_min') }}" min="0">
             </div>
             <div class="col">
@@ -42,7 +42,6 @@
                 </select>
             </div>
         </div>
-
         <div class="mt-3 d-flex align-items-center">
             <div class="mr-3" style="margin-right: 10px;">
                 <button type="submit" class="btn btn-primary">Filter</button>
@@ -50,10 +49,10 @@
             <div class="mr-3" style="margin-right: 10px;">
                 <a href="{{ route('employees.export.pdf', request()->query()) }}" class="btn btn-success export-btn" data-export-type="PDF">Export PDF</a>
             </div>
-            <div class="mr-3" style="margin-right: 15px;">
+            <div class="mr-3" style="margin-right: 10px;">
                 <a href="{{ route('employees.export.csv', request()->query()) }}" class="btn btn-info export-btn" data-export-type="CSV">Export CSV</a>
             </div>
-            <div class="ml-auto text-light">
+            <div class="ml-auto text-light" style="margin-right: 10px;">
                 Liczba pracowników: {{ $employees->total() }}
             </div>
         </div>
@@ -80,8 +79,30 @@
                 </td>
                 <td>{{ $employee->first_name }}</td>
                 <td>{{ $employee->last_name }}</td>
-                <td>{{ optional($employee->currentDepartment)->dept_name }}</td>
-                <td>{{ optional($employee->currentTitle)->title }}</td>
+                <td>
+                    @if(optional($employee->currentDepartment)->dept_name)
+                        {{ $employee->currentDepartment->dept_name }}
+                    @elseif(isset($employee->deptEmps) && $employee->deptEmps->isNotEmpty())
+                        @php
+                            $lastDept = $employee->deptEmps->sortByDesc('to_date')->first();
+                        @endphp
+                        {{ optional($lastDept->department)->dept_name ?? '-' }}
+                    @else
+                        -
+                    @endif
+                </td>
+                <td>
+                    @if(optional($employee->currentTitle)->title)
+                        {{ $employee->currentTitle->title }}
+                    @elseif(isset($employee->titles) && $employee->titles->isNotEmpty())
+                        @php
+                            $lastTitle = $employee->titles->sortByDesc('to_date')->first();
+                        @endphp
+                        {{ $lastTitle->title }}
+                    @else
+                        -
+                    @endif
+                </td>
                 <td>
                     @if(optional($employee->currentSalary)->salary)
                         {{ $employee->currentSalary->salary }}
