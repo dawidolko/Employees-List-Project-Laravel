@@ -1,0 +1,73 @@
+# General
+.DS_Store
+.env
+.env.backup
+.env.production
+*.log
+*.swp
+*.swo
+*~
+
+# Backend Laravel
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/.env.backup
+backend/.phpunit.result.cache
+backend/Homestead.json
+backend/Homestead.yaml
+backend/npm-debug.log
+backend/yarn-error.log
+backend/.phpunit.cache
+backend/.php-cs-fixer.cache
+
+# Laravel specific
+backend/storage/logs/*.log
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*.php
+
+# Test database (można zakomentować jeśli chcesz wersjonować)
+backend/test_db/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.project
+.buildpath
+.settings/
+*.tmproj
+*.code-workspace
+
+# OS
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Composer
+composer.phar
+backend/composer.lock
+
+# NPM
+package-lock.json
+backend/package-lock.json
+yarn.lock
+backend/yarn.lock
+
+# Build files
+backend/public/hot
+backend/public/storage
+backend/public/build
+backend/public/mix-manifest.json
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache

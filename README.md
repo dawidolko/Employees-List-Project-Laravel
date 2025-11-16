@@ -55,7 +55,48 @@ project
 
 ---
 
-## Installation
+## Quick Installation (Recommended) 🚀
+
+**One-command setup** - automatycznie konfiguruje cały projekt:
+
+```bash
+git clone https://github.com/dawidolko/Employees-List-Project-Laravel
+cd Employees-List-Project-Laravel
+./setup.sh
+```
+
+Skrypt automatycznie:
+
+- ✅ Sprawdzi wymagania systemowe (PHP >= 8.2, MySQL, Composer)
+- ✅ Uruchomi MySQL jeśli nie działa
+- ✅ Utworzy bazę danych `employees`
+- ✅ Pobierze i zaimportuje dane testowe (~300,000 rekordów)
+- ✅ Zainstaluje wszystkie zależności PHP i Node.js
+- ✅ Skonfiguruje plik `.env`
+- ✅ Wygeneruje klucz aplikacji
+- ✅ Uruchomi serwer deweloperski
+
+### Wymagania
+
+- **PHP >= 8.2** (z rozszerzeniami: mbstring, xml, pdo_mysql, curl, zip)
+- **Composer** (https://getcomposer.org)
+- **MySQL 5.7+** lub **MariaDB 10.3+**
+- **Git** (opcjonalnie, do pobrania danych testowych)
+
+### Po instalacji
+
+Aplikacja będzie dostępna pod adresem: **http://localhost:8000**
+
+Aby uruchomić serwer ponownie:
+
+```bash
+cd backend
+php artisan serve
+```
+
+---
+
+## Manual Installation (Alternative)
 
 1. **Clone the repository**:
 
@@ -66,26 +107,30 @@ project
 
 2. **Backend (Laravel) setup**:
 
-   - Install dependencies:
-     ```bash
-     composer install
-     ```
-   - Copy the `.env.example` to `.env` and configure your database connection settings:
-     ```bash
-     cp .env.example .env
-     ```
-   - Generate an application key:
-     ```bash
-     php artisan key:generate
-     ```
+   ```bash
+   cd backend
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
 3. **Database Setup**:
 
-   - Download the sample MySQL database from [datacharmer/test_db](https://github.com/datacharmer/test_db).
-   - Create a new database (e.g. `employees_db`) and import the SQL scripts:
+   - Create database:
+
      ```bash
-     mysql -u root -p employees_db < employees.sql
+     mysql -u root -p -e "CREATE DATABASE employees CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
      ```
+
+   - Download and import test data:
+
+     ```bash
+     git clone https://github.com/datacharmer/test_db.git
+     cd test_db
+     mysql -u root -p employees < employees.sql
+     ```
+
+   - Configure `.env` file with your database credentials
 
 4. **Run the application**:
 
