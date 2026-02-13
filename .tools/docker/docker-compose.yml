@@ -1,0 +1,140 @@
+name: employeeslist-project
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: employeeslist-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: employees
+      MYSQL_USER: laravel_user
+      MYSQL_PASSWORD: laravel_password
+    ports:
+      - "3307:3306" # Using 3307 to avoid conflicts with local MySQL
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../../database:/docker-entrypoint-initdb.d:ro
+    networks:
+      - employeeslist-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-proot_password",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: --default-authentication-plugin=mysql_native_password --max_allowed_packet=256M
+
+  # Laravel Application Service
+  app:
+    build:
+      context: ../..
+      dockerfile: .tools/docker/Dockerfile
+    container_name: employeeslist-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=employees
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=laravel_password
+    ports:
+      - "8000:80"
+    volumes:
+      - ../../backend:/var/www/html
+      - storage_data:/var/www/html/storage
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - employeeslist-network
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        # Wait for MySQL to be ready
+        echo "Waiting for MySQL to be ready..."
+        sleep 10
+
+        # Copy .env file if not exists
+        if [ ! -f .env ]; then
+          cp .env.example .env
+          echo ".env file created"
+        fi
+
+        # Generate application key if not set
+        if grep -q "APP_KEY=$" .env; then
+          php artisan key:generate
+          echo "Application key generated"
+        fi
+
+        # Update .env with database credentials
+        sed -i 's/DB_HOST=.*/DB_HOST=mysql/' .env
+        sed -i 's/DB_DATABASE=.*/DB_DATABASE=employees/' .env
+        sed -i 's/DB_USERNAME=.*/DB_USERNAME=laravel_user/' .env
+        sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=laravel_password/' .env
+
+        # Create storage link
+        php artisan storage:link
+
+        # Run migrations
+        php artisan migrate --force
+
+        # Clear and cache configuration
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+
+        # Set proper permissions
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+        echo "Application setup completed!"
+        echo "Starting services..."
+
+        # Start supervisor
+        /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+
+  # PHPMyAdmin for database management (optional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    platform: linux/amd64 # For Apple Silicon (M1/M2) compatibility
+    container_name: employeeslist-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+      UPLOAD_LIMIT: 256M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - employeeslist-network
+
+networks:
+  employeeslist-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  storage_data:
+    driver: local

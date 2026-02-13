@@ -56,14 +56,68 @@ Employees-List-Project-Laravel/
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+### 🐳 Quick Start with Docker (Recommended)
+
+The easiest and fastest way to run this project is using Docker. Everything is pre-configured and automated!
+
+**Docker Project Name**: `employeeslist-project`  
+**MySQL Port**: 3307 (to avoid conflicts with local MySQL)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/dawidolko/Employees-List-Project-Laravel.git
+cd Employees-List-Project-Laravel/.tools/docker
+
+# 2. Start the application (first run takes 5-10 minutes)
+docker-compose up -d --build
+
+# 3. Access the application
+# Web App: http://localhost:8000
+# PHPMyAdmin: http://localhost:8080
+# MySQL: localhost:3307
+```
+
+**That's it!** The Docker setup includes:
+
+- ✅ Laravel application with PHP 8.2
+- ✅ MySQL 8.0 database with employee data (~300k employees) on port 3307
+- ✅ Nginx web server
+- ✅ PHPMyAdmin for database management
+- ✅ Automatic configuration and database import
+- ✅ Named containers: `employeeslist-mysql`, `employeeslist-app`, `employeeslist-phpmyadmin`
+
+📚 **Detailed Docker Documentation**:
+
+- [Complete Installation Guide](.tools/docker/README.md) - Full manual setup instructions
+- [Quick Start Guide](.tools/docker/QUICKSTART.md) - Fast reference
+- [FAQ](.tools/docker/FAQ.md) - Common questions and troubleshooting
+- [Architecture](.tools/docker/ARCHITECTURE.md) - System architecture diagrams
+
+**Management Commands**:
+
+```bash
+cd .tools/docker
+./manage.sh start    # Start containers
+./manage.sh stop     # Stop containers
+./manage.sh status   # View status
+./manage.sh logs     # View logs
+./manage.sh help     # Show all commands
+```
+
+---
+
+### 💻 Manual Installation (Without Docker)
+
+If you prefer to install without Docker, follow these steps:
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/dawidolko/Employees-List-Project-Laravel.git
 cd Employees-List-Project-Laravel
 ```
 
-### 2. Backend Setup (Laravel)
+#### 2. Backend Setup (Laravel)
 
 ```bash
 cd backend
@@ -78,9 +132,9 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-### 3. Database Configuration
+#### 3. Database Configuration
 
-#### Configure Database Connection
+**Configure Database Connection**
 
 Edit the `.env` file with your MySQL credentials:
 
@@ -106,7 +160,7 @@ mysql -u root -p -e "CREATE DATABASE employees_db;"
 mysql -u root -p employees_db < /path/to/employees.sql
 ```
 
-### 4. Start the Application
+#### 4. Start the Application
 
 ```bash
 # Start Laravel development server
@@ -114,6 +168,8 @@ php artisan serve
 ```
 
 - Access the application at [http://localhost:8000](http://localhost:8000)
+
+---
 
 ## ⚙️ System Requirements
 
