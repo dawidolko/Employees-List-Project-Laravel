@@ -15,7 +15,7 @@ services:
       - "3307:3306" # Using 3307 to avoid conflicts with local MySQL
     volumes:
       - mysql_data:/var/lib/mysql
-      - ../../database:/docker-entrypoint-initdb.d:ro
+      - ../../database:/tmp/database:ro
     networks:
       - employeeslist-network
     healthcheck:
@@ -44,9 +44,8 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=
+      - APP_ENV=local
+      - APP_DEBUG=true
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -58,6 +57,7 @@ services:
     volumes:
       - ../../backend:/var/www/html
       - storage_data:/var/www/html/storage
+      - ../../database:/tmp/database:ro
       - ./php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     depends_on:
       mysql:
@@ -71,15 +71,20 @@ services:
         echo "Waiting for MySQL to be ready..."
         sleep 10
 
+        # Install Composer dependencies
+        echo "Installing Composer dependencies..."
+        composer install --no-interaction --optimize-autoloader --no-dev
+        echo "Composer dependencies installed"
+
         # Copy .env file if not exists
         if [ ! -f .env ]; then
           cp .env.example .env
           echo ".env file created"
         fi
 
-        # Generate application key if not set
-        if grep -q "APP_KEY=$" .env; then
-          php artisan key:generate
+        # Generate application key if not set or empty
+        if ! grep -qP "APP_KEY=.+" .env || grep -q "APP_KEY=$" .env; then
+          php artisan key:generate --force
           echo "Application key generated"
         fi
 
@@ -89,20 +94,24 @@ services:
         sed -i 's/DB_USERNAME=.*/DB_USERNAME=laravel_user/' .env
         sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=laravel_password/' .env
 
-        # Create storage link
-        php artisan storage:link
+        # Set proper permissions FIRST
+        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+        # Clear any bootstrap cache files
+        rm -rf /var/www/html/bootstrap/cache/*.php
+
+        # Create storage link (ignore if exists)
+        php artisan storage:link 2>/dev/null || true
 
         # Run migrations
         php artisan migrate --force
 
-        # Clear and cache configuration
-        php artisan config:cache
-        php artisan route:cache
-        php artisan view:cache
-
-        # Set proper permissions
-        chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-        chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+        # Import employee database (do it every time, mysql will skip if data exists)
+        echo "Importing employee database..."
+        cd /tmp/database
+        mysql -h mysql -u laravel_user -plaravel_password employees < employees.sql 2>&1 | grep -E "INFO" || echo "Database import attempted"
+        cd /var/www/html
 
         echo "Application setup completed!"
         echo "Starting services..."

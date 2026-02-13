@@ -1,0 +1,82 @@
+# Docker ignore file for Laravel project
+
+# Laravel specific
+backend/.env
+backend/.env.backup
+backend/.env.production
+backend/.phpunit.result.cache
+backend/Homestead.json
+backend/Homestead.yaml
+backend/npm-debug.log
+backend/yarn-error.log
+
+# Vendor directories
+backend/vendor/
+backend/node_modules/
+
+# Storage and cache
+backend/storage/app/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/logs/*
+!backend/storage/app/.gitignore
+!backend/storage/app/public
+!backend/storage/framework/.gitignore
+!backend/storage/logs/.gitignore
+
+# Build artifacts
+backend/public/hot
+backend/public/storage
+backend/public/mix-manifest.json
+backend/public/build
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+backend/tests/
+backend/phpunit.xml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Docker files (no need to copy into image)
+.tools/docker/docker-compose.yml
+.tools/docker/.env.docker
+.tools/docker/.dockerignore
+.tools/docker/Dockerfile
+
+# Database dumps (imported separately)
+database/*.sql
+database/*.dump
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Other
+*.bak
+*.tmp
+*.temp
+.cache/
