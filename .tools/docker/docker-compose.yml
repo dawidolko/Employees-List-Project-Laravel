@@ -1,7 +1,6 @@
 name: employeeslist-project
 
 services:
-  # MySQL Database Service
   mysql:
     image: mysql:8.0
     container_name: employeeslist-mysql
@@ -12,30 +11,19 @@ services:
       MYSQL_USER: laravel_user
       MYSQL_PASSWORD: laravel_password
     ports:
-      - "3307:3306" # Using 3307 to avoid conflicts with local MySQL
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ../../database:/tmp/database:ro
+      - ../../database:/docker-entrypoint-initdb.d:ro
     networks:
       - employeeslist-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "mysqladmin",
-          "ping",
-          "-h",
-          "localhost",
-          "-u",
-          "root",
-          "-proot_password",
-        ]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
       interval: 10s
       timeout: 5s
       retries: 5
     command: --default-authentication-plugin=mysql_native_password --max_allowed_packet=256M
 
-  # Laravel Application Service
   app:
     build:
       context: ../..
@@ -57,7 +45,6 @@ services:
     volumes:
       - ../../backend:/var/www/html
       - storage_data:/var/www/html/storage
-      - ../../database:/tmp/database:ro
       - ./php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     depends_on:
       mysql:
@@ -67,87 +54,33 @@ services:
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
-        # Wait for MySQL to be ready
-        echo "Waiting for MySQL to be ready..."
-        sleep 10
-
-        # Install Composer dependencies
+        set -e
+        echo "Waiting for MySQL..."
+        sleep 15
         echo "Installing Composer dependencies..."
         composer install --no-interaction --optimize-autoloader --no-dev
-        echo "Composer dependencies installed"
-
-        # Copy .env file if not exists
         if [ ! -f .env ]; then
           cp .env.example .env
-          echo ".env file created"
         fi
-
-        # Generate application key if not set or empty
-        if ! grep -qP "APP_KEY=.+" .env || grep -q "APP_KEY=$" .env; then
+        if ! grep -qP "APP_KEY=.+" .env; then
           php artisan key:generate --force
-          echo "Application key generated"
         fi
-
-        # Update .env with database credentials
         sed -i 's/DB_HOST=.*/DB_HOST=mysql/' .env
         sed -i 's/DB_DATABASE=.*/DB_DATABASE=employees/' .env
         sed -i 's/DB_USERNAME=.*/DB_USERNAME=laravel_user/' .env
         sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=laravel_password/' .env
-
-        # Set proper permissions FIRST
         chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
         chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-        # Clear any bootstrap cache files
         rm -rf /var/www/html/bootstrap/cache/*.php
-
-        # Create storage link (ignore if exists)
         php artisan storage:link 2>/dev/null || true
-
-        # Import employee database BEFORE Laravel migrations
-        echo "=========================================="
-        echo "Importing employee database..."
-        echo "=========================================="
-
-        # Check if tables already exist
-        DEPT_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'employees' AND table_name = 'departments';" 2>/dev/null || echo "0")
-
-        if [ "$DEPT_COUNT" != "" ] && [ "$DEPT_COUNT" -gt 0 ]; then
-          echo "✓ Tables already exist, skipping import"
-        else
-          echo "📥 Importing database from /tmp/database/employees.sql..."
-          # Import must be done with source command and root user
-          if mysql -h mysql -u root -proot_password -D employees -e "source /tmp/database/employees.sql" 2>&1 | grep -E "INFO|ERROR"; then
-            echo "✓ Database import completed!"
-          else
-            echo "⚠ Import command finished"
-          fi
-        fi
-
-        # Verify database content
-        echo "Verifying database..."
-        EMP_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM employees.employees;" 2>/dev/null || echo "0")
-        DEPT_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM employees.departments;" 2>/dev/null || echo "0")
-
-        if [ "$EMP_COUNT" != "" ] && [ "$EMP_COUNT" -gt 0 ]; then
-          echo "✓ Found $EMP_COUNT employees and $DEPT_COUNT departments in database"
-        else
-          echo "✗ WARNING: Database verification failed!"
-        fi
-
-        # Run Laravel migrations for users table etc
+        echo "Running Laravel migrations..."
         php artisan migrate --force
-
-        echo "Application setup completed!"
-        echo "Starting services..."
-
-        # Start supervisor
+        echo "✓ Application ready!"
         /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 
-  # PHPMyAdmin for database management (optional)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
-    platform: linux/amd64 # For Apple Silicon (M1/M2) compatibility
+    platform: linux/amd64
     container_name: employeeslist-phpmyadmin
     restart: unless-stopped
     environment:
