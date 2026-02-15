@@ -104,14 +104,39 @@ services:
         # Create storage link (ignore if exists)
         php artisan storage:link 2>/dev/null || true
 
-        # Run migrations
-        php artisan migrate --force
-
-        # Import employee database (do it every time, mysql will skip if data exists)
+        # Import employee database BEFORE Laravel migrations
+        echo "=========================================="
         echo "Importing employee database..."
-        cd /tmp/database
-        mysql -h mysql -u laravel_user -plaravel_password employees < employees.sql 2>&1 | grep -E "INFO" || echo "Database import attempted"
-        cd /var/www/html
+        echo "=========================================="
+
+        # Check if tables already exist
+        DEPT_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'employees' AND table_name = 'departments';" 2>/dev/null || echo "0")
+
+        if [ "$DEPT_COUNT" != "" ] && [ "$DEPT_COUNT" -gt 0 ]; then
+          echo "✓ Tables already exist, skipping import"
+        else
+          echo "📥 Importing database from /tmp/database/employees.sql..."
+          # Import must be done with source command and root user
+          if mysql -h mysql -u root -proot_password -D employees -e "source /tmp/database/employees.sql" 2>&1 | grep -E "INFO|ERROR"; then
+            echo "✓ Database import completed!"
+          else
+            echo "⚠ Import command finished"
+          fi
+        fi
+
+        # Verify database content
+        echo "Verifying database..."
+        EMP_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM employees.employees;" 2>/dev/null || echo "0")
+        DEPT_COUNT=$(mysql -h mysql -u root -proot_password -se "SELECT COUNT(*) FROM employees.departments;" 2>/dev/null || echo "0")
+
+        if [ "$EMP_COUNT" != "" ] && [ "$EMP_COUNT" -gt 0 ]; then
+          echo "✓ Found $EMP_COUNT employees and $DEPT_COUNT departments in database"
+        else
+          echo "✗ WARNING: Database verification failed!"
+        fi
+
+        # Run Laravel migrations for users table etc
+        php artisan migrate --force
 
         echo "Application setup completed!"
         echo "Starting services..."
