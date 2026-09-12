@@ -1,354 +1,153 @@
-# Employees-List-Project-Laravel
+# Employee Directory
 
-> 🚀 **Enterprise Employee Directory Management** - Build comprehensive HR systems with Laravel, advanced filtering, and data export capabilities
+> 👥 **300 000 employees, one query at a time** — a Laravel front end for the MySQL Employees sample database, with filters that hold across exports
 
-## 📋 Description
+**Employee Directory** puts a readable interface on the MySQL Employees sample database — the one with six tables, three hundred thousand people and forty years of salary history. It lists them with pagination, narrows the list by department, gender, salary range and employment status, and opens a single person's record with their titles, departments and pay over time.
 
-Welcome to the **Employee Directory App** repository! This Laravel-based application provides a robust solution for managing and analyzing employee data using the MySQL Employees Sample Database. The system features comprehensive employee listings, advanced filtering options, salary analysis, and powerful data export capabilities.
+Whatever the filters say is what gets exported. Both the PDF and the CSV are built from the same query as the page you are looking at, so an export is never a different set of rows than the one on screen.
 
-Built with Laravel's elegant architecture and utilizing a realistic dataset from [datacharmer/test_db](https://github.com/datacharmer/test_db), this project demonstrates best practices in database management, query optimization, and enterprise-grade HR system development. Perfect for learning complex database operations, reporting systems, and data-driven web applications.
+![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?logo=laravel&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![Blade](https://img.shields.io/badge/Blade-templates-F05340?logo=laravel&logoColor=white)
+![dompdf](https://img.shields.io/badge/dompdf-3.1-8A2BE2)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-## 📁 Repository Structure
+---
 
-```
+## 🎯 Key Features
 
-Employees-List-Project-Laravel/
-├── 📁 backend/ # Laravel backend application
-│ ├── 📁 app/
-│ │ ├── 🎮 Http/
-│ │ │ └── Controllers/ # Application controllers
-│ │ ├── 📦 Models/ # Eloquent ORM models
-│ │ │ ├── Employee.php
-│ │ │ ├── Department.php
-│ │ │ ├── Salary.php
-│ │ │ └── Title.php
-│ │ └── 🔧 Services/ # Business logic services
-│ ├── 📁 config/ # Configuration files
-│ ├── 📁 database/
-│ │ ├── 🌱 seeders/ # Database seeders
-│ │ └── 🔄 migrations/ # Database migrations
-│ ├── 📁 routes/
-│ │ ├── 🌐 web.php # Web routes
-│ │ ├── 🔌 api.php # API endpoints
-│ │ ├── 📡 channels.php # Broadcasting channels
-│ │ └── ⚙️ console.php # Console commands
-│ ├── 📁 resources/
-│ │ ├── 📄 views/ # Blade templates
-│ │ └── 🎨 css/ # Stylesheets
-│ ├── 📁 public/ # Public assets
-│ ├── 📁 storage/ # Application storage
-│ ├── 📁 tests/ # Unit and feature tests
-│ ├── ⚙️ .env.example # Environment template
-│ ├── 🎯 artisan # Laravel CLI
-│ ├── 📦 composer.json # PHP dependencies
-│ ├── 🔧 webpack.mix.js # Asset compilation
-│ └── 📖 README.md # Backend documentation
-├── 📁 database/ # SQL scripts and diagrams
-│ ├── 📊 employees.sql # Sample database
-│ ├── 🗂️ schema-diagram.pdf # Database schema
-│ └── 📖 README.md # Database documentation
-├── 📁 docs/ # Project documentation
-│ ├── 📚 user-guide.md
-│ └── 🔧 api-reference.md
-└── 📖 README.md # Main documentation
+- **Filters that compose** — department, gender, salary floor, salary ceiling and current-versus-former employment narrow the same query together; each one is a `whereHas` on the related table rather than a second round trip.
+- **Exports match the screen** — PDF (dompdf) and CSV are generated from the filtered query, so what you download is what you were looking at. A separate check endpoint reports how many rows a PDF would contain before you commit to generating it.
+- **One person, their whole history** — a record shows current and past departments, the sequence of job titles and the salary changes behind them, read from `titles`, `dept_emp` and `salaries`.
+- **Paginated by design** — fifteen rows a page against a table of three hundred thousand; nothing tries to hold the set in memory.
+- **A per-employee PDF** — a single record exports on its own, for when the whole list is not the point.
+- **Accounts** — registration and sign-in through Laravel's own authentication, so the directory is not open to the world by default.
+- **Measured** — Lighthouse reports for desktop and mobile are in `docs/lighthouse`.
 
-```
+---
+
+## 🖼️ Screenshots
+
+| The list with filters applied                   | A single employee record                       |
+| ----------------------------------------------- | ---------------------------------------------- |
+| ![The employee list with the filter panel](docs/img/GUI1.png) | ![One employee with titles and salary history](docs/img/GUI2.png) |
+
+| Lighthouse, desktop                              | Lighthouse, mobile                             |
+| ------------------------------------------------ | ---------------------------------------------- |
+| ![Lighthouse report for desktop](docs/lighthouse/desktop.png) | ![Lighthouse report for mobile](docs/lighthouse/mobile.png) |
+
+---
+
+## 🗄️ The Database
+
+This project does not invent its data. It reads the **MySQL Employees Sample Database**, a public dataset published for exactly this kind of exercise:
+
+| Table       | Rows      | What it holds                                    |
+| ----------- | --------- | ------------------------------------------------ |
+| `employees` | ~300 000  | Person, birth date, hire date, gender.           |
+| `salaries`  | ~2.8 M    | Pay with a validity range — history, not a field. |
+| `titles`    | ~440 000  | Job titles over time.                            |
+| `dept_emp`  | ~330 000  | Which department, and when.                      |
+| `dept_manager` | ~24    | Who ran which department, and when.              |
+| `departments`  | 9      | The departments themselves.                      |
+
+The entity-relationship diagram is in `docs/ERD.png`.
+
+Because salary and title are historical, "current" means "the row whose validity range has not ended" — which is why the models expose `currentSalary` and `currentDepartment` rather than a plain column.
+
+---
+
+## 🛠️ Technology Stack
+
+| Technology              | Version | Role                                                         |
+| ----------------------- | ------- | ------------------------------------------------------------ |
+| **Laravel**             | 11      | Routing, Eloquent, Blade views, authentication.              |
+| **PHP**                 | 8.2     | Runtime.                                                     |
+| **MySQL**               | 8       | The Employees sample database.                               |
+| **barryvdh/laravel-dompdf** | 3.1 | PDF export of the filtered list and of single records.       |
+| **Laravel Sanctum**     | 4       | Session and token guards.                                    |
+| **Blade**               | —       | Server-rendered views, no SPA layer.                         |
+
+---
 
 ## 🚀 Getting Started
 
-### 🐳 Quick Start with Docker (Recommended)
+### Prerequisites
 
-The easiest and fastest way to run this project is using Docker. Everything is pre-configured and automated!
+- PHP 8.2 or newer with Composer
+- MySQL 8 (or MariaDB)
+- The [MySQL Employees Sample Database](https://github.com/datacharmer/test_db)
 
-**Docker Project Name**: `employeeslist-project`  
-**MySQL Port**: 3307 (to avoid conflicts with local MySQL)
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/dawidolko/Employees-List-Project-Laravel.git
-cd Employees-List-Project-Laravel/.tools/docker
-
-# 2. Start the application (first run takes 5-10 minutes)
-docker-compose up -d --build
-
-# 3. Access the application
-# Web App: http://localhost:8000
-# PHPMyAdmin: http://localhost:8080
-# MySQL: localhost:3307
-```
-
-**That's it!** The Docker setup includes:
-
-- ✅ Laravel application with PHP 8.2
-- ✅ MySQL 8.0 database with employee data (~300k employees) on port 3307
-- ✅ Nginx web server
-- ✅ PHPMyAdmin for database management
-- ✅ Automatic configuration and database import
-- ✅ Named containers: `employeeslist-mysql`, `employeeslist-app`, `employeeslist-phpmyadmin`
-
-📚 **Detailed Docker Documentation**:
-
-- [Complete Installation Guide](.tools/docker/README.md) - Full manual setup instructions
-- [Quick Start Guide](.tools/docker/QUICKSTART.md) - Fast reference
-- [FAQ](.tools/docker/FAQ.md) - Common questions and troubleshooting
-- [Architecture](.tools/docker/ARCHITECTURE.md) - System architecture diagrams
-
-**Management Commands**:
-
-```bash
-cd .tools/docker
-./manage.sh start    # Start containers
-./manage.sh stop     # Stop containers
-./manage.sh status   # View status
-./manage.sh logs     # View logs
-./manage.sh help     # Show all commands
-```
-
----
-
-### 💻 Manual Installation (Without Docker)
-
-If you prefer to install without Docker, follow these steps:
-
-#### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/dawidolko/Employees-List-Project-Laravel.git
-cd Employees-List-Project-Laravel
+cd Employees-List-Project-Laravel/backend
 ```
 
-#### 2. Backend Setup (Laravel)
+### 2. Install and configure
 
 ```bash
-cd backend
-
-# Install PHP dependencies
 composer install
-
-# Create environment file
 cp .env.example .env
-
-# Generate application key
 php artisan key:generate
 ```
 
-#### 3. Database Configuration
-
-**Configure Database Connection**
-
-Edit the `.env` file with your MySQL credentials:
+Point `.env` at the imported sample database:
 
 ```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=employees_db
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
+DB_DATABASE=employees
+DB_USERNAME=root
+DB_PASSWORD=
 ```
 
-#### Import Sample Database
-
-Download and import the MySQL Employees Sample Database:
+### 3. Load the data
 
 ```bash
-# Download from https://github.com/datacharmer/test_db
-# Create database
-mysql -u root -p -e "CREATE DATABASE employees_db;"
-
-# Import SQL scripts
-mysql -u root -p employees_db < /path/to/employees.sql
+# from the test_db checkout
+mysql -u root -p < employees.sql
 ```
 
-#### 4. Start the Application
+Then add this project's own tables (accounts, sessions):
 
 ```bash
-# Start Laravel development server
-php artisan serve
+php artisan migrate
 ```
 
-- Access the application at [http://localhost:8000](http://localhost:8000)
+### 4. Run
+
+```bash
+php artisan serve      # http://127.0.0.1:8000
+```
 
 ---
 
-## ⚙️ System Requirements
+## 📁 Project Structure
 
-### **Essential Tools:**
+```
+Employees-List-Project-Laravel/
+├── backend/                            # the Laravel application
+│   ├── app/
+│   │   ├── Http/Controllers/
+│   │   │   ├── EmployeeController.php  # list, filters, record, PDF and CSV exports
+│   │   │   └── AuthController.php      # registration and sign-in
+│   │   └── Models/
+│   │       ├── Employee.php            # currentSalary, currentDepartment
+│   │       ├── Salary.php              # validity range, not a single figure
+│   │       ├── Title.php
+│   │       ├── Department.php
+│   │       └── DeptEmp.php
+│   ├── resources/views/
+│   │   ├── employees/                  # list, record and the PDF template
+│   │   └── layouts/
+│   └── routes/web.php
+├── database/                           # SQL dump for a quick import
+└── docs/                               # ERD, documentation, screenshots, Lighthouse
+```
 
-- **PHP** (version 8.0 or higher)
-- **Composer** for PHP dependency management
-- **MySQL** (version 5.7 or higher)
-- **Git** for version control
-
-### **Development Environment:**
-
-- **Laravel** (latest version)
-- **Code Editor** (VS Code, PhpStorm, Sublime Text)
-- **Database Management Tool** (phpMyAdmin, MySQL Workbench, DBeaver)
-- **Postman** or **Insomnia** for API testing
-
-### **Database Requirements:**
-
-- **MySQL Employees Sample Database** from [datacharmer/test_db](https://github.com/datacharmer/test_db)
-- Minimum 200MB storage for database
-- Proper MySQL user privileges
-
-### **Recommended Extensions:**
-
-- **Laravel** and **PHP** IntelliSense
-- **Laravel Blade Snippets**
-- **PHP Debug** for debugging
-- **Prettier** for code formatting
-- **MySQL** syntax highlighting
-
-### **Laravel Ecosystem:**
-
-- **Eloquent ORM** for database operations
-- **Blade Templating Engine** for views
-- **Laravel Excel** for data export
-- **Laravel Debugbar** for development
-
-## ✨ Key Features
-
-### **👥 Employee Directory**
-
-- Comprehensive employee listing with key information
-- Display first name, last name, birth date, and hire date
-- Current department and job title information
-- Real-time salary data display
-- Employee number and gender information
-
-### **🔍 Advanced Filtering System**
-
-- **Employment Status**: Filter current vs. former employees
-- **Gender Filter**: Male, Female, or All employees
-- **Salary Range**: Minimum and maximum salary filters
-- **Department Filter**: Filter by specific departments
-- **Date Range**: Filter by hire date periods
-- Combined multi-criteria filtering
-
-### **💰 Salary Analysis**
-
-- Display current employee salary
-- Calculate total lifetime earnings per employee
-- Salary history tracking and analysis
-- Department salary statistics
-- Salary range reports
-
-### **📊 Data Export Capabilities**
-
-- Export employee data to CSV format
-- Comprehensive employee details in exports
-- Include total salary sum calculations
-- Custom export field selection
-- Filtered data export support
-
-### **🏢 Department Management**
-
-- View department assignments
-- Department employee count
-- Department salary budgets
-- Historical department changes
-
-### **📈 Reporting Features**
-
-- Employee statistics and analytics
-- Department distribution reports
-- Salary trend analysis
-- Gender distribution statistics
-- Employment duration reports
-
-### **🔐 Data Integrity**
-
-- Proper foreign key relationships
-- Transaction-safe operations
-- Data validation and constraints
-- Historical data preservation
-
-## 🛠️ Technologies Used
-
-- **Laravel** - Robust PHP framework for web applications
-- **MySQL** - Relational database management system
-- **Eloquent ORM** - Elegant database abstraction layer
-- **Blade** - Laravel's powerful templating engine
-- **Laravel Excel** - Excel and CSV export functionality
-- **Bootstrap** - Responsive frontend framework
-- **jQuery** - JavaScript library for DOM manipulation
-- **Chart.js** - Data visualization library
-- **Composer** - PHP dependency management
-
-## 📚 Database Schema
-
-The application uses the MySQL Employees Sample Database with the following main tables:
-
-- **employees** - Employee personal information
-- **departments** - Department details
-- **dept_emp** - Employee-department assignments
-- **dept_manager** - Department managers
-- **titles** - Employee job titles
-- **salaries** - Employee salary history
-
-For detailed schema information, refer to the [MySQL Employees Sample Database Documentation](https://dev.mysql.com/doc/employee/en/employees-preface.html).
-
-## 📖 Usage Guide
-
-### **1. View Employee Directory**
-
-Navigate to the main page to see a comprehensive list of all employees with their current information including name, department, job title, and current salary.
-
-### **2. Apply Filters**
-
-Use the filtering panel to refine your search:
-
-- Select employment status (current/former)
-- Choose gender
-- Set salary range (min/max)
-- Select specific departments
-- Apply date range filters
-
-### **3. Export Data**
-
-Click the "Export" button to generate a CSV file containing:
-
-- Employee details (name, department, title)
-- Current salary information
-- Total lifetime earnings
-- Custom filtered data
-
-### **4. View Employee Details**
-
-Click on any employee to view detailed information including:
-
-- Complete employment history
-- Salary progression
-- Department changes
-- Title history
-
-## 🖼️ Preview
-
-[<img src="docs/img/GUI1.png" width="80%" alt="Employee Directory Preview"/>](docs/img/GUI1.png)
-
-## 📊 Project Status
-
-✅ **Completed** - Fully functional employee directory management system!
-
-## 🤝 Contributing
-
-Contributions are highly welcomed! Here's how you can help:
-
-- 🐛 **Report bugs** - Found an issue? Let us know!
-- 💡 **Suggest improvements** - Have ideas for better features?
-- 🔧 **Submit pull requests** - Share your enhancements and solutions
-- 📖 **Improve documentation** - Help make the project clearer
-
-Feel free to open issues or reach out through GitHub for any questions or suggestions.
-
-## 👨‍💻 Author
-
-Created by **Dawid Olko** - Part of the Laravel enterprise application series.
+---
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
-
----
+MIT © [Dawid Olko](https://dawidolko.pl)
