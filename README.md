@@ -58,6 +58,12 @@ Because salary and title are historical, "current" means "the row whose validity
 
 ---
 
+## 🎬 Demo
+
+[![Watch the demo on YouTube](https://img.youtube.com/vi/IrXowM1RJ0U/hqdefault.jpg)](https://youtu.be/IrXowM1RJ0U?si=BhE7ExEXMQ9pChby)
+
+---
+
 ## 🛠️ Technology Stack
 
 | Technology              | Version | Role                                                         |
