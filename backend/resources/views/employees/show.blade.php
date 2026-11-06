@@ -66,7 +66,9 @@
         </div>
     </div>
     
-    <!-- Historia pensji -->
+    <!--
+      Salary history
+    -->
     <h3 class="mt-4">Historia pensji</h3>
     <table class="table table-bordered">
         <thead>
@@ -87,7 +89,9 @@
         </tbody>
     </table>
 
-    <!-- Historia stanowiska -->
+    <!--
+      Title history
+    -->
     <h3 class="mt-4">Historia stanowiska</h3>
     <table class="table table-bordered">
         <thead>
@@ -108,7 +112,9 @@
         </tbody>
     </table>
 
-    <!-- Wykres pensji -->
+    <!--
+      Salary chart
+    -->
     @php
         $salaries = $employee->salaries->sortBy('from_date');
         $labels = $salaries->map(function($s) { return $s->from_date; })->toArray();

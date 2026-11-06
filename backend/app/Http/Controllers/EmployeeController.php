@@ -50,7 +50,9 @@ class EmployeeController extends Controller
             $query->whereDoesntHave('deptEmps', function($q) {
                 $q->where('to_date', '9999-01-01');
             });
-            // Dla byłych pracowników ładujemy historię pensji oraz stanowisk
+            /*
+             * Former employees: load salary and title history
+             */
             $query->with(['salaries', 'titles']);
         }
 
